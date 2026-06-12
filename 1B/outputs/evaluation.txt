@@ -1,9 +1,22 @@
-Timestamp: 2026-05-20T18:09:08.166103
-Macro F1: 0.7128
+Timestamp: 2026-06-12T15:16:48.195091
+Macro F1: 0.7247
 
-Per-class metrics:
-  Good: precision=0.6636, recall=0.5801, f1=0.6190
-  Poor: precision=0.7708, recall=0.7116, f1=0.7400
-  Standard: precision=0.7493, recall=0.8117, f1=0.7793
-  macro avg: precision=0.7279, recall=0.7011, f1=0.7128
-  weighted avg: precision=0.7406, recall=0.7420, f1=0.7398
+Model Comparison:
+  Random Forest   train_accuracy=1.0000, test_accuracy=0.7472, f1_macro=0.7194
+  XGBoost         train_accuracy=0.8706, test_accuracy=0.7266, f1_macro=0.6996
+  LightGBM        train_accuracy=0.8286, test_accuracy=0.7096, f1_macro=0.7000
+  MLP             train_accuracy=0.9959, test_accuracy=0.6316, f1_macro=0.5972
+  Random Forest (Tuned) train_accuracy=0.9838, test_accuracy=0.7414, f1_macro=0.7247
+  XGBoost (Tuned) train_accuracy=1.0000, test_accuracy=0.7388, f1_macro=0.7141
+  LightGBM (Tuned) train_accuracy=1.0000, test_accuracy=0.7378, f1_macro=0.7180
+  MLP (Tuned)     train_accuracy=0.6986, test_accuracy=0.6958, f1_macro=0.6608
+
+Best model: Random Forest (Tuned)
+Best params: {'n_estimators': 400, 'min_samples_split': 5, 'min_samples_leaf': 2, 'max_depth': 30}
+
+Per-class metrics (best model):
+  Good: precision=0.5970, recall=0.7254, f1=0.6550
+  Poor: precision=0.7444, recall=0.7562, f1=0.7503
+  Standard: precision=0.8020, recall=0.7386, f1=0.7690
+  macro avg: precision=0.7145, recall=0.7400, f1=0.7247
+  weighted avg: precision=0.7494, recall=0.7414, f1=0.7436

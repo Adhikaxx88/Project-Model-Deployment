@@ -1,61 +1,134 @@
-from sklearn.compose import ColumnTransformer
+from abc import ABC, abstractmethod
+
+import lightgbm as lgb
+import numpy as np
+import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder, OrdinalEncoder, RobustScaler
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.neural_network import MLPClassifier
 
-from config import RF_PARAMS, TRAIN_PARAMS
-
-NUM_COLS = [
-    "Age", "Monthly_Inhand_Salary", "Num_Bank_Accounts", "Num_Credit_Card",
-    "Interest_Rate", "Num_of_Loan", "Delay_from_due_date", "Num_of_Delayed_Payment",
-    "Changed_Credit_Limit", "Num_Credit_Inquiries", "Outstanding_Debt",
-    "Credit_Utilization_Ratio", "Total_EMI_per_month", "Amount_invested_monthly",
-    "Credit_History_Months",
-]
-
-CAT_COLS = [
-    "Month", "Occupation", "Credit_Mix", "Payment_of_Min_Amount", "Payment_Behaviour",
-]
+from config import (
+    LGBM_PARAM_GRID,
+    LGBM_PARAMS,
+    MLP_PARAM_GRID,
+    MLP_PARAMS,
+    RF_PARAM_GRID,
+    RF_PARAMS,
+    SEARCH_PARAMS,
+    XGB_PARAM_GRID,
+    XGB_PARAMS,
+)
 
 
-def train(df):
-    X = df.drop("Credit_Score", axis=1)
-    y = df["Credit_Score"]
+class BaseTrainer(ABC):
+    """Common interface for a model trained on already-preprocessed features."""
 
-    loan_cols = [c for c in X.columns if c.startswith("Loan_")]
-    num_cols = [c for c in NUM_COLS if c in X.columns]
-    cat_cols = [c for c in CAT_COLS if c in X.columns]
+    _name: str
 
-    num_transformer = Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", RobustScaler()),
-    ])
-    cat_transformer = Pipeline([
-        ("imputer", SimpleImputer(strategy="constant", fill_value="Unknown")),
-        ("encoder", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)),
-    ])
+    def __init__(self) -> None:
+        self.model = self.build_model()
 
-    preprocessor = ColumnTransformer([
-        ("num", num_transformer, num_cols),
-        ("cat", cat_transformer, cat_cols),
-    ], remainder="passthrough")
+    @abstractmethod
+    def build_model(self):
+        """Return an unfitted sklearn-compatible estimator."""
 
-    pipeline = Pipeline([
-        ("preprocessor", preprocessor),
-        ("classifier", RandomForestClassifier(**RF_PARAMS)),
-    ])
+    def train(self, X_train: np.ndarray, y_train: np.ndarray) -> "BaseTrainer":
+        self.model.fit(X_train, y_train)
+        return self
 
-    le = LabelEncoder()
-    y_enc = le.fit_transform(y)
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return self.model.predict(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y_enc,
-        test_size=TRAIN_PARAMS["test_size"],
-        random_state=TRAIN_PARAMS["random_state"],
-        stratify=y_enc,
-    )
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        return self.model.predict_proba(X)
 
-    pipeline.fit(X_train, y_train)
-    return pipeline, le, X_test, y_test
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def final_estimator(self):
+        """The fitted estimator to embed in the deployment pipeline."""
+        return self.model
+
+
+class RandomForestTrainer(BaseTrainer):
+    _name = "Random Forest"
+
+    def build_model(self):
+        return RandomForestClassifier(**RF_PARAMS)
+
+
+class XGBoostTrainer(BaseTrainer):
+    _name = "XGBoost"
+
+    def build_model(self):
+        return xgb.XGBClassifier(**XGB_PARAMS)
+
+
+class LightGBMTrainer(BaseTrainer):
+    _name = "LightGBM"
+
+    def build_model(self):
+        return lgb.LGBMClassifier(**LGBM_PARAMS)
+
+
+class MLPTrainer(BaseTrainer):
+    _name = "MLP"
+
+    def build_model(self):
+        return MLPClassifier(**MLP_PARAMS)
+
+
+class TunedTrainer(BaseTrainer):
+    """Wraps a base estimator with RandomizedSearchCV hyperparameter tuning."""
+
+    def __init__(self, name: str, base_estimator, param_grid: dict) -> None:
+        self._name = name
+        self._base_estimator = base_estimator
+        self._param_grid = param_grid
+        super().__init__()
+
+    def build_model(self):
+        return RandomizedSearchCV(
+            self._base_estimator,
+            param_distributions=self._param_grid,
+            **SEARCH_PARAMS,
+        )
+
+    @property
+    def best_params_(self) -> dict:
+        return self.model.best_params_
+
+    @property
+    def final_estimator(self):
+        return self.model.best_estimator_
+
+
+def get_all_trainers() -> list[BaseTrainer]:
+    return [RandomForestTrainer(), XGBoostTrainer(), LightGBMTrainer(), MLPTrainer()]
+
+
+def get_tuned_trainers() -> list[BaseTrainer]:
+    return [
+        TunedTrainer(
+            "Random Forest (Tuned)",
+            RandomForestClassifier(class_weight="balanced", random_state=42, n_jobs=-1),
+            RF_PARAM_GRID,
+        ),
+        TunedTrainer(
+            "XGBoost (Tuned)",
+            xgb.XGBClassifier(eval_metric="mlogloss", random_state=42, n_jobs=-1),
+            XGB_PARAM_GRID,
+        ),
+        TunedTrainer(
+            "LightGBM (Tuned)",
+            lgb.LGBMClassifier(class_weight="balanced", random_state=42, n_jobs=-1, verbose=-1),
+            LGBM_PARAM_GRID,
+        ),
+        TunedTrainer(
+            "MLP (Tuned)",
+            MLPClassifier(max_iter=300, random_state=42),
+            MLP_PARAM_GRID,
+        ),
+    ]
