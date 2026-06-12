@@ -1,0 +1,9 @@
+Timestamp: 2026-05-20T18:09:08.166103
+Macro F1: 0.7128
+
+Per-class metrics:
+  Good: precision=0.6636, recall=0.5801, f1=0.6190
+  Poor: precision=0.7708, recall=0.7116, f1=0.7400
+  Standard: precision=0.7493, recall=0.8117, f1=0.7793
+  macro avg: precision=0.7279, recall=0.7011, f1=0.7128
+  weighted avg: precision=0.7406, recall=0.7420, f1=0.7398

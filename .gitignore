@@ -1,0 +1,8 @@
+# MLflow tracking
+1B/mlruns/
+
+# Model binaries
+**/*.pkl
+
+# Claude settings
+.claude/

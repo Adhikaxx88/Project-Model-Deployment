@@ -1,0 +1,1 @@
+jangan lupa jadiin OOP, trus jangan lupa decoupled architecture streamlit + fast api
