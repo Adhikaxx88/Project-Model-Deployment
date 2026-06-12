@@ -1,14 +1,10 @@
-import pickle
-from pathlib import Path
-
+import httpx
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-# ── Paths ──────────────────────────────────────────────────────────────────────
-BASE       = Path(__file__).parent
-MODEL_PATH = BASE / "model.pkl"
-LE_PATH    = BASE / "label_encoder.pkl"
+# ── Config ────────────────────────────────────────────────────────────────────
+API_URL = "http://localhost:8000/predict"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 MONTHS = [
@@ -89,19 +85,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Model loader ──────────────────────────────────────────────────────────────
-@st.cache_resource
-def load_model():
-    if not MODEL_PATH.exists():
-        return None, None
-    with open(MODEL_PATH, "rb") as f:
-        pipeline = pickle.load(f)
-    with open(LE_PATH, "rb") as f:
-        le = pickle.load(f)
-    return pipeline, le
-
-pipeline, le = load_model()
-
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.title("💳 Credit Score Predictor")
@@ -131,12 +114,6 @@ with st.sidebar:
 st.title("💳 Credit Score Predictor")
 st.markdown("Isi profil keuangan nasabah di bawah untuk memprediksi credit score mereka.")
 st.divider()
-
-if pipeline is None:
-    st.error(
-        "Model tidak ditemukan. Jalankan `python pipeline.py` di folder `1B/` terlebih dahulu."
-    )
-    st.stop()
 
 # ── Charts ────────────────────────────────────────────────────────────────────
 def gauge_chart(value: float, label: str, color: str) -> go.Figure:
@@ -288,12 +265,26 @@ if submitted:
         **loan_cols,
     }
 
-    df_input    = pd.DataFrame([input_data])
-    pred_encoded = pipeline.predict(df_input)
-    pred_proba   = pipeline.predict_proba(df_input)[0]
-    label        = le.inverse_transform(pred_encoded)[0]
-    color        = SCORE_COLOR.get(label, "#6c757d")
-    top_prob     = pred_proba.max() * 100
+    try:
+        response = httpx.post(API_URL, json=input_data, timeout=10.0)
+        response.raise_for_status()
+    except httpx.RequestError:
+        st.error("Tidak dapat terhubung ke API. Pastikan FastAPI server berjalan di `http://localhost:8000`.")
+        st.stop()
+    except httpx.HTTPStatusError as e:
+        st.error(f"API mengembalikan error: {e.response.status_code} - {e.response.text}")
+        st.stop()
+
+    result         = response.json()
+    label          = result["label"]
+    probabilities  = result["probabilities"]
+    classes        = result["classes"]
+    pred_proba     = [probabilities[c] for c in classes]
+
+    color    = SCORE_COLOR.get(label, "#6c757d")
+    top_prob = max(pred_proba) * 100
+
+    df_input = pd.DataFrame([input_data])
 
     st.divider()
     st.subheader("Hasil Prediksi")
@@ -322,8 +313,7 @@ if submitted:
 
     with col_metric:
         st.markdown("**Probabilitas per Kelas**")
-        for cls, prob in sorted(zip(le.classes_, pred_proba), key=lambda x: -x[1]):
-            c = SCORE_COLOR.get(cls, "#6c757d")
+        for cls, prob in sorted(zip(classes, pred_proba), key=lambda x: -x[1]):
             delta_symbol = "▲" if cls == label else ""
             st.metric(
                 label=f"{cls} {delta_symbol}",
@@ -338,7 +328,7 @@ if submitted:
 
     with col_bar:
         st.plotly_chart(
-            prob_bar_chart(list(le.classes_), list(pred_proba)),
+            prob_bar_chart(classes, pred_proba),
             use_container_width=True,
         )
 
