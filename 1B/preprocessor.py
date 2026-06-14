@@ -9,7 +9,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder, RobustScaler
 
-DROP_COLS = ["ID", "Name", "SSN", "Customer_ID"]
+DROP_COLS = ["ID", "Name", "SSN", "Customer_ID","Unnamed: 0"]
 
 STR_TO_FLOAT_COLS = [
     "Age", "Annual_Income", "Num_of_Loan", "Num_of_Delayed_Payment",
@@ -24,7 +24,9 @@ OUTLIER_CAPS = {
     "Num_of_Loan": 0.95,
     "Num_Credit_Inquiries": 0.98,
     "Num_of_Delayed_Payment": 0.99,
-    "Total_EMI_per_month": 0.95,
+    "Total_EMI_per_month": 0.95,    
+    "Monthly_Balance": 0.99,  
+    "Age": 0.95,     
 }
 
 LOAN_TYPES = [
@@ -61,7 +63,7 @@ def _parse_credit_history_months(val) -> float:
 
 
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Stateless row-level feature engineering applied before train/test split."""
+   
     df = df.copy()
 
     df.drop(columns=[c for c in DROP_COLS if c in df.columns], inplace=True)
@@ -135,7 +137,7 @@ class Preprocessor:
         return self.label_encoder.transform(y)
 
     def save(self, path: str | Path) -> None:
-        """Save the fitted label encoder (kept identical to the original label_encoder.pkl)."""
+        
         with open(path, "wb") as f:
             pickle.dump(self.label_encoder, f)
 

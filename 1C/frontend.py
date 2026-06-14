@@ -3,10 +3,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# Config 
 API_URL = "http://localhost:8000/predict"
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# Constants 
 MONTHS = [
     "January", "February", "March", "April",
     "May", "June", "July", "August",
@@ -34,7 +34,7 @@ LOAN_TYPES = [
 ]
 SCORE_COLOR = {"Good": "#28a745", "Standard": "#fd7e14", "Poor": "#dc3545"}
 
-# ── Page config ───────────────────────────────────────────────────────────────
+#  Page config
 st.set_page_config(
     page_title="Credit Score Predictor",
     page_icon="💳",
@@ -42,7 +42,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS ────────────────────────────────────────────────────────────────
+#  Custom CSS
 st.markdown("""
 <style>
 /* Section card */
@@ -85,19 +85,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
+#  Sidebar
 with st.sidebar:
     st.title("💳 Credit Score Predictor")
     st.markdown("Prediksi credit score nasabah berdasarkan profil keuangan mereka.")
     st.divider()
 
-    with st.expander("ℹ️ Info Model"):
-        st.markdown(
-            "**Model:** Random Forest  \n"
-            "**Target:** Credit Score  \n"
-            "**Kelas:** Good | Standard | Poor  \n"
-            "**Metrik:** Macro F1 ≈ 0.716"
-        )
+
 
     st.divider()
     st.markdown('<p class="sidebar-label">Panduan Pengisian</p>', unsafe_allow_html=True)
@@ -110,12 +104,12 @@ with st.sidebar:
     st.divider()
     st.caption("Model Deployment Project · 1C")
 
-# ── Header ────────────────────────────────────────────────────────────────────
+#  Header
 st.title("💳 Credit Score Predictor")
 st.markdown("Isi profil keuangan nasabah di bawah untuk memprediksi credit score mereka.")
 st.divider()
 
-# ── Charts ────────────────────────────────────────────────────────────────────
+# Charts
 def gauge_chart(value: float, label: str, color: str) -> go.Figure:
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
@@ -166,22 +160,23 @@ def prob_bar_chart(classes: list, probs: list) -> go.Figure:
     )
     return fig
 
-# ── Input form ────────────────────────────────────────────────────────────────
+# Input form
 with st.form("prediction_form"):
 
     # Personal info
     st.markdown('<div class="section-title">👤 Informasi Personal</div>', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
         month = st.selectbox("Month", MONTHS)
         age   = st.number_input("Age", min_value=14, max_value=100, value=30)
     with c2:
-        occupation            = st.selectbox("Occupation", OCCUPATIONS)
-        monthly_inhand_salary = st.number_input("Monthly Inhand Salary", min_value=0.0, value=3000.0, step=100.0)
+        occupation     = st.selectbox("Occupation", OCCUPATIONS)
+        annual_income  = st.number_input("Annual Income", min_value=0.0, value=50000.0, step=1000.0)  # ← tambah
     with c3:
-        ch_years  = st.number_input("Credit History — Years",  min_value=0, max_value=40, value=5)
-        ch_months = st.number_input("Credit History — Months", min_value=0, max_value=11, value=0)
-    credit_history_months = int(ch_years) * 12 + int(ch_months)
+        monthly_inhand_salary = st.number_input("Monthly Inhand Salary", min_value=0.0, value=3000.0, step=100.0)
+        ch_years  = st.number_input("Credit History  Years", min_value=0, max_value=40, value=5)
+    with c4:
+        ch_months = st.number_input("Credit History  Months", min_value=0, max_value=11, value=0)
 
     st.divider()
 
@@ -204,18 +199,21 @@ with st.form("prediction_form"):
     st.divider()
 
     # Financial info
+
     st.markdown('<div class="section-title">💰 Informasi Keuangan</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     with c1:
-        credit_mix       = st.selectbox("Credit Mix",    CREDIT_MIX)
+        credit_mix       = st.selectbox("Credit Mix", CREDIT_MIX)
         outstanding_debt = st.number_input("Outstanding Debt", min_value=0.0, value=800.0, step=50.0)
     with c2:
         credit_utilization_ratio = st.number_input("Credit Utilization Ratio (%)", min_value=0.0, max_value=100.0, value=28.0, step=0.5)
-        total_emi_per_month      = st.number_input("Total EMI per Month",           min_value=0.0, value=120.0, step=10.0)
+        total_emi_per_month      = st.number_input("Total EMI per Month", min_value=0.0, value=120.0, step=10.0)
     with c3:
         amount_invested_monthly = st.number_input("Amount Invested Monthly", min_value=0.0, value=300.0, step=50.0)
+        monthly_balance         = st.number_input("Monthly Balance", min_value=0.0, value=300.0, step=50.0)
         payment_of_min_amount   = st.selectbox("Payment of Min Amount", PAYMENT_MIN)
 
+    credit_history_months = int(ch_years) * 12 + int(ch_months)
     payment_behaviour = st.selectbox("Payment Behaviour", PAYMENT_BEHAVIOUR)
 
     st.divider()
@@ -234,7 +232,7 @@ with st.form("prediction_form"):
         type="primary",
     )
 
-# ── Inference & Result ────────────────────────────────────────────────────────
+#  Inference & Result
 if submitted:
     loan_cols = {
         f"Loan_{loan.replace(' ', '_').replace('-', '_')}": (1 if loan in selected_loans else 0)
@@ -262,6 +260,8 @@ if submitted:
         "Amount_invested_monthly":  amount_invested_monthly,
         "Payment_Behaviour":        payment_behaviour,
         "Credit_History_Months":    credit_history_months,
+        "Annual_Income":         annual_income,
+        "Monthly_Balance":       monthly_balance,
         **loan_cols,
     }
 
@@ -289,7 +289,7 @@ if submitted:
     st.divider()
     st.subheader("Hasil Prediksi")
 
-    # ── Result banner
+    #  Result banner
     icon = {"Good": "✅", "Standard": "⚠️", "Poor": "❌"}.get(label, "")
     desc = {
         "Good":     "Nasabah ini memiliki profil kredit yang **sangat baik**.",
@@ -308,7 +308,7 @@ if submitted:
         unsafe_allow_html=True,
     )
 
-    # ── 3-column layout: metrics | gauge | bar chart
+    #  3-column layout: metrics | gauge | bar chart
     col_metric, col_gauge, col_bar = st.columns([1, 1.4, 1.6])
 
     with col_metric:
@@ -332,6 +332,6 @@ if submitted:
             use_container_width=True,
         )
 
-    # ── Input summary
+    #  Input summary
     with st.expander("🔎 Lihat data input yang dikirim ke model"):
         st.dataframe(df_input.T.rename(columns={0: "Value"}), use_container_width=True)

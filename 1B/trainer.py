@@ -21,7 +21,7 @@ from config import (
 
 
 class BaseTrainer(ABC):
-    """Common interface for a model trained on already-preprocessed features."""
+ 
 
     _name: str
 
@@ -34,7 +34,7 @@ class BaseTrainer(ABC):
 
     def train(self, X_train: np.ndarray, y_train: np.ndarray) -> "BaseTrainer":
         self.model.fit(X_train, y_train)
-        return self
+        return selfdisit
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         return self.model.predict(X)

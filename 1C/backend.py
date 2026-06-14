@@ -1,6 +1,9 @@
 from typing import Dict
 
+from fastapi import FastAPI
 from pydantic import BaseModel
+
+from inference import InferenceService
 
 
 class PredictRequest(BaseModel):
@@ -32,9 +35,32 @@ class PredictRequest(BaseModel):
     Loan_Payday_Loan: int
     Loan_Personal_Loan: int
     Loan_Auto_Loan: int
+    Annual_Income: float
+    Monthly_Balance: float
 
 
 class PredictResponse(BaseModel):
     label: str
     probabilities: Dict[str, float]
     classes: list[str]
+
+
+class CreditScoreAPI:
+    def __init__(self):
+        self.app = FastAPI(title="Credit Score Predictor API")
+        self.inference_service = InferenceService()
+        self._register_routes()
+
+    def _register_routes(self):
+        self.app.get("/")(self.root)
+        self.app.post("/predict", response_model=PredictResponse)(self.predict)
+
+    def root(self):
+        return {"status": "ok"}
+
+    def predict(self, request: PredictRequest):
+        result = self.inference_service.predict(request.model_dump())
+        return result
+
+
+app = CreditScoreAPI().app

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-BASE = Path(__file__).resolve().parent.parent.parent
+BASE = Path(__file__).resolve().parent
 MODEL_PATH = BASE / "model.pkl"
 LE_PATH = BASE / "label_encoder.pkl"
 
