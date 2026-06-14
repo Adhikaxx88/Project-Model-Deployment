@@ -1,14 +1,4 @@
-"""
-api.py  —  2B (cloud version)
-==============================
-FastAPI yang menjadi middleware antara Streamlit dan SageMaker endpoint.
-Frontend (frontend.py) tetap manggil http://localhost:8000/predict seperti biasa.
-Hanya file ini yang tahu soal SageMaker — inilah decoupled architecture-nya.
 
-Environment variables:
-  ENDPOINT_NAME   nama SageMaker endpoint  (default: credit-score-endpoint)
-  AWS_REGION      region AWS               (default: us-east-1)
-"""
 import json
 import os
 from typing import Dict
