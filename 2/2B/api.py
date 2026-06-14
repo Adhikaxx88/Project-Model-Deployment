@@ -52,8 +52,7 @@ class PredictResponse(BaseModel):
 
 
 class CreditScoreCloudAPI:
-    """OOP wrapper untuk FastAPI — konsisten dengan arsitektur 1C/backend.py."""
-
+   
     def __init__(self) -> None:
         self.app        = FastAPI(title="Credit Score API — Cloud")
         self.sm_runtime = boto3.client("sagemaker-runtime", region_name=AWS_REGION)

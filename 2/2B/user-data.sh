@@ -74,4 +74,4 @@ systemctl enable fastapi streamlit
 systemctl start fastapi streamlit
 
 touch "$APP_DIR/.userdata-success"
-echo "Bootstrap selesai ✅"
+echo "Bootstrap selesai "
