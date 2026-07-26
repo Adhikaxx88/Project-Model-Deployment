@@ -1,4 +1,4 @@
-# Streamlit and AWS Web Deployment — Credit Score Prediction
+# Streamlit and AWS Web Deployment for Credit Score Prediction
 
 Project end-to-end machine learning untuk memprediksi kategori credit score (Good/Standard/Poor), mulai dari eksplorasi data, pipeline training terstruktur, sampai deployment ke AWS (SageMaker + EC2) dengan Streamlit sebagai frontend.
 
